@@ -113,7 +113,7 @@ object OpenSubtitles {
             conn.setRequestProperty("User-Agent", UA)
             try {
                 if (conn.responseCode !in 200..299) return@withContext false
-                conn.inputStream.use { input -> dest.outputStream.use { out -> input.copyTo(out) } }
+                conn.inputStream.use { input -> dest.outputStream().use { out -> input.copyTo(out) } }
             } finally {
                 conn.disconnect()
             }
