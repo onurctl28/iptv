@@ -18,4 +18,5 @@
     <string name="reconnecting">Yeniden bağlanılıyor…</string>
     <string name="play_error">Yayın açılamadı. Başka bir kanal deneyin.</string>
     <string name="favorite">Favori</string>
+    <string name="channel_not_found">Yok</string>
 </resources>

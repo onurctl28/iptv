@@ -64,6 +64,23 @@
 
     </LinearLayout>
 
+    <!-- Kumandadan yazılan kanal numarası göstergesi -->
+    <TextView
+        android:id="@+id/tv_numinput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="20dp"
+        android:background="#CC0E1116"
+        android:minWidth="90dp"
+        android:gravity="center"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp"
+        android:textColor="#FFFFFF"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
     <!-- Tamponlama / hata bilgisi -->
     <TextView
         android:id="@+id/tv_info"

@@ -9,6 +9,7 @@ object Prefs {
     private const val K_USER = "user"
     private const val K_PASS = "pass"
     private const val K_FAV = "favorites"
+    private const val K_LAST = "last_stream_id"
 
     private fun sp(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -31,6 +32,12 @@ object Prefs {
         val favs = favorites(ctx)
         sp(ctx).edit().clear().putStringSet(K_FAV, favs).apply()
     }
+
+    fun saveLastChannel(ctx: Context, streamId: String) {
+        sp(ctx).edit().putString(K_LAST, streamId).apply()
+    }
+
+    fun lastChannel(ctx: Context): String = sp(ctx).getString(K_LAST, "") ?: ""
 
     fun favorites(ctx: Context): MutableSet<String> =
         HashSet(sp(ctx).getStringSet(K_FAV, emptySet()) ?: emptySet())

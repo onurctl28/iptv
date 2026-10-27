@@ -29,9 +29,13 @@ class MainActivity : AppCompatActivity() {
     private var currentCategoryId: String = FAV_ID
     private var query: String = ""
 
+    private var firstLaunch = false
+
     companion object {
         const val FAV_ID = "__fav__"
         const val ALL_ID = "__all__"
+        // Uygulama açılışında son kanala yalnızca bir kez otomatik dönülür
+        var autoResumed = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +47,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        firstLaunch = savedInstanceState == null
         setContentView(R.layout.activity_main)
         client = XtreamClient(Prefs.host(this), Prefs.user(this), Prefs.pass(this))
 
@@ -103,7 +108,22 @@ class MainActivity : AppCompatActivity() {
 
             progress.visibility = View.GONE
             applyFilter()
+            maybeResumeLastChannel()
         }
+    }
+
+    /** Uygulama ilk açıldığında, varsa son izlenen kanaldan devam et. */
+    private fun maybeResumeLastChannel() {
+        if (autoResumed || !firstLaunch) return
+        val lastId = Prefs.lastChannel(this)
+        if (lastId.isEmpty()) return
+        val pos = allChannels.indexOfFirst { it.streamId == lastId }
+        if (pos < 0) return
+        autoResumed = true
+        Playlist.items = allChannels
+        Playlist.index = pos
+        Playlist.catNameById = catNameById
+        startActivity(Intent(this, PlayerActivity::class.java))
     }
 
     override fun onResume() {

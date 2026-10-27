@@ -31,6 +31,7 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         private const val MAX_RETRY = 5
         private const val PANEL_MS = 5000L
+        private const val NUM_COMMIT_MS = 2500L
     }
 
     private lateinit var client: XtreamClient
@@ -42,6 +43,9 @@ class PlayerActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val hidePanel = Runnable { findViewById<View>(R.id.info_panel).visibility = View.GONE }
+
+    private val numBuffer = StringBuilder()
+    private val commitNum = Runnable { commitNumber() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,6 +88,45 @@ class PlayerActivity : AppCompatActivity() {
         val catName = Playlist.catNameById[ch.categoryId]
         findViewById<TextView>(R.id.tv_meta).text =
             channelInfoLines(ch, catName).joinToString("\n")
+
+        // Açılışta devam edebilmek için son izlenen kanalı kaydet
+        Prefs.saveLastChannel(this, ch.streamId)
+    }
+
+    /** Kumandadan yazılan rakamı biriktir ve göster. */
+    private fun onDigit(d: Int) {
+        if (numBuffer.length >= 4) numBuffer.clear()
+        numBuffer.append(d)
+        val tv = findViewById<TextView>(R.id.tv_numinput)
+        tv.text = numBuffer.toString()
+        tv.visibility = View.VISIBLE
+        handler.removeCallbacks(commitNum)
+        handler.postDelayed(commitNum, NUM_COMMIT_MS)
+    }
+
+    /** Yazılan "Sıra No"ya sahip kanala geç. */
+    private fun commitNumber() {
+        val target = numBuffer.toString()
+        numBuffer.clear()
+        val tv = findViewById<TextView>(R.id.tv_numinput)
+        if (target.isEmpty()) {
+            tv.visibility = View.GONE
+            return
+        }
+        val pos = items.indexOfFirst { it.number == target }
+        if (pos >= 0) {
+            tv.visibility = View.GONE
+            index = pos
+            val ch = items[index]
+            retryCount = 0
+            bindChannelUi(ch)
+            showPanel()
+            loadEpg(ch)
+            playCurrent()
+        } else {
+            tv.text = getString(R.string.channel_not_found)
+            handler.postDelayed({ tv.visibility = View.GONE }, 1500)
+        }
     }
 
     /** Paneli göster ve 5 sn sonra gizle. */
@@ -130,7 +173,12 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
-            when (event.keyCode) {
+            val code = event.keyCode
+            if (code in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
+                onDigit(code - KeyEvent.KEYCODE_0)
+                return true
+            }
+            when (code) {
                 KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> { zap(1); return true }
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> { zap(-1); return true }
                 KeyEvent.KEYCODE_VOLUME_UP -> { adjustVolume(AudioManager.ADJUST_RAISE); return true }
@@ -154,6 +202,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         handler.removeCallbacks(hidePanel)
+        handler.removeCallbacks(commitNum)
         releasePlayer()
     }
 
