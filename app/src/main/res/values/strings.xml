@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IPTV Oynatıcı</string>
+    <string name="login_subtitle">Sunucu bilgilerinizle giriş yapın</string>
+    <string name="host_hint">Sunucu adresi (http://adres:port)</string>
+    <string name="user_hint">Kullanıcı adı</string>
+    <string name="pass_hint">Şifre</string>
+    <string name="login">Giriş yap</string>
+    <string name="fill_all">Lütfen tüm alanları doldurun.</string>
+    <string name="login_failed">Giriş başarısız. Bilgileri ve sunucu adresini kontrol edin.</string>
+    <string name="favorites">Favoriler</string>
+    <string name="all_channels">Tüm Kanallar</string>
+    <string name="search_hint">Kanal ara…</string>
+    <string name="logout">Çıkış</string>
+    <string name="empty">Kanal bulunamadı.</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="buffering">Tamponlanıyor…</string>
+    <string name="reconnecting">Yeniden bağlanılıyor…</string>
+    <string name="play_error">Yayın açılamadı. Başka bir kanal deneyin.</string>
+    <string name="favorite">Favori</string>
+</resources>
