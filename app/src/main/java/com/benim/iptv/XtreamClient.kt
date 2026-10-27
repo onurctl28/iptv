@@ -52,6 +52,14 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
     fun liveUrl(streamId: String, ext: String = "ts"): String =
         "$base/live/${enc(user)}/${enc(pass)}/$streamId.$ext"
 
+    /** Film (VOD) akış adresi. */
+    fun vodUrl(streamId: String, ext: String): String =
+        "$base/movie/${enc(user)}/${enc(pass)}/$streamId.${ext.ifEmpty { "mp4" }}"
+
+    /** Dizi bölümü akış adresi. */
+    fun episodeUrl(episodeId: String, ext: String): String =
+        "$base/series/${enc(user)}/${enc(pass)}/$episodeId.${ext.ifEmpty { "mp4" }}"
+
     private fun fetch(urlStr: String): Resp {
         val conn = URL(urlStr).openConnection() as HttpURLConnection
         conn.connectTimeout = 15000
@@ -144,6 +152,103 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
                         streamType = o.optString("stream_type")
                     )
                 )
+            }
+        } catch (e: Exception) {
+        }
+        out
+    }
+
+    suspend fun vodCategories(): List<Category> = categoriesOf("get_vod_categories")
+
+    suspend fun vodStreams(): List<Vod> = withContext(Dispatchers.IO) {
+        val out = ArrayList<Vod>()
+        try {
+            val arr = JSONArray(fetch(apiUrl(base, "get_vod_streams")).body)
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val id = o.optString("stream_id")
+                if (id.isEmpty() || id == "null") continue
+                out.add(
+                    Vod(
+                        streamId = id,
+                        name = o.optString("name"),
+                        icon = o.optString("stream_icon"),
+                        categoryId = o.optString("category_id"),
+                        ext = o.optString("container_extension"),
+                        rating = o.optString("rating"),
+                        added = o.optString("added")
+                    )
+                )
+            }
+        } catch (e: Exception) {
+        }
+        out
+    }
+
+    suspend fun seriesCategories(): List<Category> = categoriesOf("get_series_categories")
+
+    suspend fun seriesList(): List<Series> = withContext(Dispatchers.IO) {
+        val out = ArrayList<Series>()
+        try {
+            val arr = JSONArray(fetch(apiUrl(base, "get_series")).body)
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val id = o.optString("series_id")
+                if (id.isEmpty() || id == "null") continue
+                out.add(
+                    Series(
+                        seriesId = id,
+                        name = o.optString("name"),
+                        cover = o.optString("cover"),
+                        categoryId = o.optString("category_id"),
+                        plot = o.optString("plot"),
+                        genre = o.optString("genre"),
+                        rating = o.optString("rating")
+                    )
+                )
+            }
+        } catch (e: Exception) {
+        }
+        out
+    }
+
+    /** Bir dizinin tüm bölümlerini (sezonlara göre sıralı) getirir. */
+    suspend fun seriesEpisodes(seriesId: String): List<Episode> = withContext(Dispatchers.IO) {
+        val out = ArrayList<Episode>()
+        try {
+            val obj = JSONObject(fetch(apiUrl(base, "get_series_info") + "&series_id=$seriesId").body)
+            val eps = obj.optJSONObject("episodes") ?: return@withContext out
+            val seasonKeys = eps.keys().asSequence().toList().sortedBy { it.toIntOrNull() ?: 0 }
+            for (sk in seasonKeys) {
+                val arr = eps.optJSONArray(sk) ?: continue
+                for (i in 0 until arr.length()) {
+                    val e = arr.getJSONObject(i)
+                    val id = e.optString("id")
+                    if (id.isEmpty()) continue
+                    out.add(
+                        Episode(
+                            id = id,
+                            title = e.optString("title"),
+                            season = sk,
+                            epNum = e.optString("episode_num"),
+                            ext = e.optString("container_extension")
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+        }
+        out
+    }
+
+    private suspend fun categoriesOf(action: String): List<Category> = withContext(Dispatchers.IO) {
+        val out = ArrayList<Category>()
+        try {
+            val arr = JSONArray(fetch(apiUrl(base, action)).body)
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val id = o.optString("category_id")
+                if (id.isNotEmpty()) out.add(Category(id, o.optString("category_name")))
             }
         } catch (e: Exception) {
         }

@@ -16,9 +16,9 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Daha önce giriş yapıldıysa doğrudan kanal listesine geç
+        // Daha önce giriş yapıldıysa doğrudan seçim ekranına geç
         if (Prefs.hasLogin(this)) {
-            goToMain()
+            goHome()
             return
         }
 
@@ -53,7 +53,8 @@ class LoginActivity : AppCompatActivity() {
                 btn.isEnabled = true
                 if (result.ok) {
                     Prefs.saveLogin(this@LoginActivity, client.base, user, pass)
-                    goToMain()
+                    DataCache.clear()
+                    goHome()
                 } else {
                     error.text = result.message.ifEmpty { getString(R.string.login_failed) }
                     error.visibility = View.VISIBLE
@@ -62,8 +63,8 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun goToMain() {
-        startActivity(Intent(this, MainActivity::class.java))
+    private fun goHome() {
+        startActivity(Intent(this, HomeActivity::class.java))
         finish()
     }
 }

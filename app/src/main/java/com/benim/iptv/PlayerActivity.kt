@@ -23,10 +23,9 @@ import coil.load
 import kotlinx.coroutines.launch
 
 /**
- * Canlı yayın oynatıcı.
- * - Açılışta kanalın sunucudan gelen tüm bilgilerini (logo, ad, kategori, EPG) 5 sn gösterir.
- * - Kumanda: AŞAĞI = sonraki kanal, YUKARI = önceki kanal, SES +/- = ses ayarı.
- * - Donanımsal kod çözme, akıcılık için ayarlı tampon, hatada otomatik yeniden deneme.
+ * Türden bağımsız oynatıcı (canlı kanal / film / dizi bölümü).
+ * - Açılışta öğenin tüm bilgilerini (logo, ad, bilgiler, canlıda EPG) 5 sn gösterir.
+ * - Kumanda: AŞAĞI = sonraki, YUKARI = önceki, rakam tuşları = numarayla geçiş, SES +/- = ses.
  */
 class PlayerActivity : AppCompatActivity() {
 
@@ -39,13 +38,12 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var client: XtreamClient
     private var player: ExoPlayer? = null
 
-    private var items: List<Channel> = emptyList()
+    private var items: List<PlayItem> = emptyList()
     private var index: Int = 0
     private var retryCount = 0
 
     private val handler = Handler(Looper.getMainLooper())
     private val hidePanel = Runnable { findViewById<View>(R.id.info_panel).visibility = View.GONE }
-
     private val numBuffer = StringBuilder()
     private val commitNum = Runnable { commitNumber() }
 
@@ -53,8 +51,6 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_player)
-
-        // Ses tuşları medya sesini ayarlasın
         volumeControlStream = AudioManager.STREAM_MUSIC
 
         client = XtreamClient(Prefs.host(this), Prefs.user(this), Prefs.pass(this))
@@ -66,20 +62,19 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
-        bindChannelUi(items[index])
+        bindUi(items[index])
         showPanel()
         loadEpg(items[index])
     }
 
-    private fun currentChannel(): Channel? = items.getOrNull(index)
+    private fun current(): PlayItem? = items.getOrNull(index)
 
-    /** Panelde kanal adı, logo ve tüm bilgileri göster. */
-    private fun bindChannelUi(ch: Channel) {
-        findViewById<TextView>(R.id.tv_name).text = ch.name
+    private fun bindUi(item: PlayItem) {
+        findViewById<TextView>(R.id.tv_name).text = item.name
 
         val logoView = findViewById<ImageView>(R.id.iv_logo)
-        if (ch.icon.isNotEmpty()) {
-            logoView.load(ch.icon) {
+        if (item.logo.isNotEmpty()) {
+            logoView.load(item.logo) {
                 placeholder(R.drawable.ic_tv)
                 error(R.drawable.ic_tv)
             }
@@ -87,15 +82,55 @@ class PlayerActivity : AppCompatActivity() {
             logoView.setImageResource(R.drawable.ic_tv)
         }
 
-        val catName = Playlist.catNameById[ch.categoryId]
-        findViewById<TextView>(R.id.tv_meta).text =
-            channelInfoLines(ch, catName).joinToString("\n")
-
-        // Açılışta devam edebilmek için son izlenen kanalı kaydet
-        Prefs.saveLastChannel(this, ch.streamId)
+        findViewById<TextView>(R.id.tv_meta).text = item.info.joinToString("\n")
     }
 
-    /** Kumandadan yazılan rakamı biriktir ve göster. */
+    private fun showPanel() {
+        findViewById<View>(R.id.info_panel).visibility = View.VISIBLE
+        handler.removeCallbacks(hidePanel)
+        handler.postDelayed(hidePanel, PANEL_MS)
+    }
+
+    /** Canlı yayında "Şimdi / Sonra" program bilgisini EPG'den çekip ekler. */
+    private fun loadEpg(item: PlayItem) {
+        val sid = item.epgStreamId
+        if (sid.isNullOrEmpty()) return
+        val baseMeta = item.info.joinToString("\n")
+        lifecycleScope.launch {
+            val epg = client.shortEpg(sid, 2)
+            if (current()?.epgStreamId != sid || epg.isEmpty()) return@launch
+            val sb = StringBuilder(baseMeta)
+            epg.getOrNull(0)?.let { sb.append("\nŞimdi: ${it.start}-${it.end}  ${it.title}") }
+            epg.getOrNull(1)?.let { sb.append("\nSonra: ${it.start}-${it.end}  ${it.title}") }
+            findViewById<TextView>(R.id.tv_meta).text = sb.toString()
+        }
+    }
+
+    /** delta=+1 sonraki, -1 önceki (liste baş/sonunda döner). */
+    private fun zap(delta: Int) {
+        if (items.isEmpty()) return
+        index = ((index + delta) % items.size + items.size) % items.size
+        goTo(index)
+    }
+
+    private fun goTo(newIndex: Int) {
+        index = newIndex
+        val item = items[index]
+        retryCount = 0
+        bindUi(item)
+        showPanel()
+        loadEpg(item)
+        playCurrent()
+    }
+
+    private fun playCurrent() {
+        val item = current() ?: return
+        val exo = player ?: return
+        exo.setMediaItem(MediaItem.fromUri(item.url))
+        exo.playWhenReady = true
+        exo.prepare()
+    }
+
     private fun onDigit(d: Int) {
         if (numBuffer.length >= 4) numBuffer.clear()
         numBuffer.append(d)
@@ -106,7 +141,6 @@ class PlayerActivity : AppCompatActivity() {
         handler.postDelayed(commitNum, NUM_COMMIT_MS)
     }
 
-    /** Yazılan "Sıra No"ya sahip kanala geç. */
     private fun commitNumber() {
         val target = numBuffer.toString()
         numBuffer.clear()
@@ -118,59 +152,11 @@ class PlayerActivity : AppCompatActivity() {
         val pos = items.indexOfFirst { it.number == target }
         if (pos >= 0) {
             tv.visibility = View.GONE
-            index = pos
-            val ch = items[index]
-            retryCount = 0
-            bindChannelUi(ch)
-            showPanel()
-            loadEpg(ch)
-            playCurrent()
+            goTo(pos)
         } else {
             tv.text = getString(R.string.channel_not_found)
             handler.postDelayed({ tv.visibility = View.GONE }, 1500)
         }
-    }
-
-    /** Paneli göster ve 5 sn sonra gizle. */
-    private fun showPanel() {
-        findViewById<View>(R.id.info_panel).visibility = View.VISIBLE
-        handler.removeCallbacks(hidePanel)
-        handler.postDelayed(hidePanel, PANEL_MS)
-    }
-
-    /** "Şimdi / Sonra" program bilgisini EPG'den çekip panele ekler (yarış korumalı). */
-    private fun loadEpg(ch: Channel) {
-        if (ch.streamId.isEmpty()) return
-        val baseMeta = findViewById<TextView>(R.id.tv_meta).text.toString()
-        lifecycleScope.launch {
-            val epg = client.shortEpg(ch.streamId, 2)
-            // Kullanıcı bu arada başka kanala geçtiyse ekleme
-            if (currentChannel()?.streamId != ch.streamId || epg.isEmpty()) return@launch
-            val sb = StringBuilder(baseMeta)
-            epg.getOrNull(0)?.let { sb.append("\nŞimdi: ${it.start}-${it.end}  ${it.title}") }
-            epg.getOrNull(1)?.let { sb.append("\nSonra: ${it.start}-${it.end}  ${it.title}") }
-            findViewById<TextView>(R.id.tv_meta).text = sb.toString()
-        }
-    }
-
-    /** delta=+1 sonraki, -1 önceki kanal (liste baş/sonunda döner). */
-    private fun zap(delta: Int) {
-        if (items.isEmpty()) return
-        index = ((index + delta) % items.size + items.size) % items.size
-        val ch = items[index]
-        retryCount = 0
-        bindChannelUi(ch)
-        showPanel()
-        loadEpg(ch)
-        playCurrent()
-    }
-
-    private fun playCurrent() {
-        val ch = currentChannel() ?: return
-        val exo = player ?: return
-        exo.setMediaItem(MediaItem.fromUri(client.liveUrl(ch.streamId)))
-        exo.playWhenReady = true
-        exo.prepare()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -209,13 +195,12 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun initPlayer() {
-        val ch = currentChannel() ?: return
+        val item = current() ?: return
 
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(15000, 50000, 2500, 5000)
             .build()
 
-        // Yayın isteklerini de uygulama kimliğiyle (UA) gönder; yönlendirmelere izin ver.
         val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(XtreamClient.UA)
             .setAllowCrossProtocolRedirects(true)
@@ -231,7 +216,7 @@ class PlayerActivity : AppCompatActivity() {
         view.player = exo
         view.keepScreenOn = true
 
-        exo.setMediaItem(MediaItem.fromUri(client.liveUrl(ch.streamId)))
+        exo.setMediaItem(MediaItem.fromUri(item.url))
         exo.playWhenReady = true
         exo.prepare()
 

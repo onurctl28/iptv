@@ -19,4 +19,13 @@
     <string name="play_error">Yayın açılamadı. Başka bir kanal deneyin.</string>
     <string name="favorite">Favori</string>
     <string name="channel_not_found">Yok</string>
+    <string name="live_tv">Canlı TV</string>
+    <string name="movies">Filmler</string>
+    <string name="series">Diziler</string>
+    <string name="live_tv_desc">Canlı kanallar</string>
+    <string name="movies_desc">Film arşivi</string>
+    <string name="series_desc">Dizi arşivi</string>
+    <string name="episodes">Bölümler</string>
+    <string name="back">Geri</string>
+    <string name="all_items">Tümü</string>
 </resources>
