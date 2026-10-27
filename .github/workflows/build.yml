@@ -22,14 +22,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK kur
-        uses: android-actions/setup-android@v3
-
-      - name: gradlew çalıştırılabilir yap
-        run: chmod +x ./gradlew
-
+      # GitHub sunucularında Android SDK zaten kuruludur (ANDROID_HOME ayarlı).
+      # Ayrı bir kurulum eklentisi kullanmıyoruz; sadece lisansları onaylayıp derliyoruz.
       - name: APK derle (debug)
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: APK'yı yeniden adlandır
         run: |
