@@ -28,4 +28,20 @@
     <string name="episodes">Bölümler</string>
     <string name="back">Geri</string>
     <string name="all_items">Tümü</string>
+    <string name="settings">Ayarlar</string>
+    <string name="sub_appearance">Altyazı Görünümü</string>
+    <string name="sub_size">Boyut</string>
+    <string name="sub_color">Renk</string>
+    <string name="sub_bg">Arka plan kutusu</string>
+    <string name="sub_edge">Dış çizgi</string>
+    <string name="sz_small">Küçük</string>
+    <string name="sz_normal">Normal</string>
+    <string name="sz_large">Büyük</string>
+    <string name="sz_xlarge">Çok Büyük</string>
+    <string name="col_white">Beyaz</string>
+    <string name="col_yellow">Sarı</string>
+    <string name="on">Açık</string>
+    <string name="off">Kapalı</string>
+    <string name="sub_preview">Örnek altyazı metni</string>
+    <string name="sub_help">Altyazılar, oynatırken alttaki kumanda çubuğundan (OK tuşu) açılıp seçilebilir. Bu ayarlar altyazının nasıl görüneceğini belirler.</string>
 </resources>

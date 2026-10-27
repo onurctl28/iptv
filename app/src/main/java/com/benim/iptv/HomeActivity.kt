@@ -31,6 +31,9 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this, BrowseActivity::class.java)
                 .putExtra(BrowseActivity.EXTRA_MODE, BrowseActivity.MODE_SERIES))
         }
+        findViewById<View>(R.id.btn_settings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
         findViewById<TextView>(R.id.btn_logout).setOnClickListener {
             Prefs.clear(this)
             DataCache.clear()

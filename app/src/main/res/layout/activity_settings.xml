@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="28dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sub_appearance"
+            android:textColor="@color/text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="18dp"
+            android:text="@string/sub_help"
+            android:textColor="@color/muted"
+            android:textSize="13sp" />
+
+        <!-- Önizleme -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:background="#101826">
+
+            <TextView
+                android:id="@+id/tv_preview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center|bottom"
+                android:layout_marginBottom="16dp"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="@string/sub_preview"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp" />
+        </FrameLayout>
+
+        <TextView style="@style/SettingLabel" android:text="@string/sub_size" />
+        <LinearLayout android:id="@+id/row_size" style="@style/SettingRow">
+            <TextView android:id="@+id/size0" style="@style/SettingChip" android:text="@string/sz_small" />
+            <TextView android:id="@+id/size1" style="@style/SettingChip" android:text="@string/sz_normal" />
+            <TextView android:id="@+id/size2" style="@style/SettingChip" android:text="@string/sz_large" />
+            <TextView android:id="@+id/size3" style="@style/SettingChip" android:text="@string/sz_xlarge" />
+        </LinearLayout>
+
+        <TextView style="@style/SettingLabel" android:text="@string/sub_color" />
+        <LinearLayout style="@style/SettingRow">
+            <TextView android:id="@+id/color0" style="@style/SettingChip" android:text="@string/col_white" />
+            <TextView android:id="@+id/color1" style="@style/SettingChip" android:text="@string/col_yellow" />
+        </LinearLayout>
+
+        <TextView style="@style/SettingLabel" android:text="@string/sub_bg" />
+        <LinearLayout style="@style/SettingRow">
+            <TextView android:id="@+id/bg_on" style="@style/SettingChip" android:text="@string/on" />
+            <TextView android:id="@+id/bg_off" style="@style/SettingChip" android:text="@string/off" />
+        </LinearLayout>
+
+        <TextView style="@style/SettingLabel" android:text="@string/sub_edge" />
+        <LinearLayout style="@style/SettingRow">
+            <TextView android:id="@+id/edge_on" style="@style/SettingChip" android:text="@string/on" />
+            <TextView android:id="@+id/edge_off" style="@style/SettingChip" android:text="@string/off" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

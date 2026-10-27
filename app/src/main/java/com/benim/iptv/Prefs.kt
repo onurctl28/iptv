@@ -10,6 +10,10 @@ object Prefs {
     private const val K_PASS = "pass"
     private const val K_FAV = "favorites"
     private const val K_LAST = "last_stream_id"
+    private const val K_SUB_SIZE = "sub_size"
+    private const val K_SUB_COLOR = "sub_color"
+    private const val K_SUB_BG = "sub_bg"
+    private const val K_SUB_EDGE = "sub_edge"
 
     private fun sp(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -38,6 +42,16 @@ object Prefs {
     }
 
     fun lastChannel(ctx: Context): String = sp(ctx).getString(K_LAST, "") ?: ""
+
+    // Altyazı görünümü (0..3 boyut, 0=beyaz/1=sarı renk, arka plan kutusu, dış çizgi)
+    fun subSize(ctx: Context): Int = sp(ctx).getInt(K_SUB_SIZE, 1)
+    fun subColor(ctx: Context): Int = sp(ctx).getInt(K_SUB_COLOR, 0)
+    fun subBg(ctx: Context): Boolean = sp(ctx).getBoolean(K_SUB_BG, true)
+    fun subEdge(ctx: Context): Boolean = sp(ctx).getBoolean(K_SUB_EDGE, true)
+    fun setSubSize(ctx: Context, v: Int) = sp(ctx).edit().putInt(K_SUB_SIZE, v).apply()
+    fun setSubColor(ctx: Context, v: Int) = sp(ctx).edit().putInt(K_SUB_COLOR, v).apply()
+    fun setSubBg(ctx: Context, v: Boolean) = sp(ctx).edit().putBoolean(K_SUB_BG, v).apply()
+    fun setSubEdge(ctx: Context, v: Boolean) = sp(ctx).edit().putBoolean(K_SUB_EDGE, v).apply()
 
     fun favorites(ctx: Context): MutableSet<String> =
         HashSet(sp(ctx).getStringSet(K_FAV, emptySet()) ?: emptySet())

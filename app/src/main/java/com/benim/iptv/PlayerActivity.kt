@@ -1,5 +1,6 @@
 package com.benim.iptv
 
+import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
@@ -18,6 +19,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import coil.load
 import kotlinx.coroutines.launch
@@ -37,6 +39,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var client: XtreamClient
     private var player: ExoPlayer? = null
+    private var playerView: PlayerView? = null
 
     private var items: List<PlayItem> = emptyList()
     private var index: Int = 0
@@ -166,9 +169,17 @@ class PlayerActivity : AppCompatActivity() {
                 onDigit(code - KeyEvent.KEYCODE_0)
                 return true
             }
+            // Kumanda çubuğu açıkken yön tuşları çubuğu yönetsin (ses/altyazı seçimi için)
+            val controllerOpen = playerView?.isControllerFullyVisible == true
             when (code) {
-                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> { zap(1); return true }
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> { zap(-1); return true }
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                    if (controllerOpen) return super.dispatchKeyEvent(event)
+                    zap(1); return true
+                }
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> {
+                    if (controllerOpen) return super.dispatchKeyEvent(event)
+                    zap(-1); return true
+                }
                 KeyEvent.KEYCODE_VOLUME_UP -> { adjustVolume(AudioManager.ADJUST_RAISE); return true }
                 KeyEvent.KEYCODE_VOLUME_DOWN -> { adjustVolume(AudioManager.ADJUST_LOWER); return true }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_INFO -> showPanel()
@@ -215,6 +226,9 @@ class PlayerActivity : AppCompatActivity() {
         val view = findViewById<PlayerView>(R.id.player_view)
         view.player = exo
         view.keepScreenOn = true
+        view.setShowSubtitleButton(true)
+        applySubtitleStyle(view)
+        playerView = view
 
         exo.setMediaItem(MediaItem.fromUri(item.url))
         exo.playWhenReady = true
@@ -252,6 +266,22 @@ class PlayerActivity : AppCompatActivity() {
         })
 
         player = exo
+    }
+
+    /** Ayarlardaki altyazı görünümünü oynatıcıya uygula. */
+    private fun applySubtitleStyle(view: PlayerView) {
+        val sv = view.subtitleView ?: return
+        val fg = if (Prefs.subColor(this) == 1) Color.parseColor("#FFEB3B") else Color.WHITE
+        val boxBg = if (Prefs.subBg(this)) Color.parseColor("#99000000") else Color.TRANSPARENT
+        val edgeType =
+            if (Prefs.subEdge(this)) CaptionStyleCompat.EDGE_TYPE_OUTLINE
+            else CaptionStyleCompat.EDGE_TYPE_NONE
+        sv.setApplyEmbeddedStyles(false)
+        sv.setStyle(CaptionStyleCompat(fg, boxBg, Color.TRANSPARENT, edgeType, Color.BLACK, null))
+        val frac = when (Prefs.subSize(this)) {
+            0 -> 0.05f; 1 -> 0.08f; 2 -> 0.11f; else -> 0.14f
+        }
+        sv.setFractionalTextSize(frac)
     }
 
     private fun releasePlayer() {
