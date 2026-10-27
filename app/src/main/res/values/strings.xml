@@ -44,4 +44,18 @@
     <string name="off">Kapalı</string>
     <string name="sub_preview">Örnek altyazı metni</string>
     <string name="sub_help">Altyazılar, oynatırken alttaki kumanda çubuğundan (OK tuşu) açılıp seçilebilir. Bu ayarlar altyazının nasıl görüneceğini belirler.</string>
+    <string name="os_title">Altyazı İndirme (OpenSubtitles)</string>
+    <string name="os_help">opensubtitles.com adresinden ücretsiz hesap açıp, hesap ayarlarından (Consumers → API) bir API anahtarı alın. Oynatırken altyazı/CC veya menü tuşuna basınca film/dizi adına göre altyazı aranıp indirilir.</string>
+    <string name="os_key_hint">API anahtarı</string>
+    <string name="os_user_hint">OpenSubtitles kullanıcı adı</string>
+    <string name="os_pass_hint">OpenSubtitles şifresi</string>
+    <string name="os_lang_hint">Altyazı dili (örn. tr, en)</string>
+    <string name="save">Kaydet</string>
+    <string name="saved">Kaydedildi</string>
+    <string name="sub_searching">Altyazı aranıyor…</string>
+    <string name="sub_loaded">Altyazı yüklendi</string>
+    <string name="sub_none">Altyazı bulunamadı</string>
+    <string name="sub_need_key">Önce Ayarlar\'dan OpenSubtitles anahtarı ve hesabı girin</string>
+    <string name="sub_login_fail">OpenSubtitles girişi başarısız (anahtar/kullanıcı/şifre?)</string>
+    <string name="sub_download">Altyazı indir</string>
 </resources>

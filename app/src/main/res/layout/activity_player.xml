@@ -60,6 +60,20 @@
                 android:textColor="@color/muted"
                 android:textSize="14sp" />
 
+            <TextView
+                android:id="@+id/btn_sub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_chip"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:text="@string/sub_download"
+                android:textColor="@color/text"
+                android:textSize="13sp" />
+
         </LinearLayout>
 
     </LinearLayout>

@@ -4,7 +4,9 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 /** Altyazı görünüm ayarları; seçimler anında kaydedilir ve önizlemeye yansır. */
@@ -30,6 +32,26 @@ class SettingsActivity : AppCompatActivity() {
         colorChips.forEachIndexed { i, v -> v.setOnClickListener { Prefs.setSubColor(this, i); refresh() } }
         bgChips.forEachIndexed { i, v -> v.setOnClickListener { Prefs.setSubBg(this, i == 0); refresh() } }
         edgeChips.forEachIndexed { i, v -> v.setOnClickListener { Prefs.setSubEdge(this, i == 0); refresh() } }
+
+        // OpenSubtitles alanları
+        val keyEt = findViewById<EditText>(R.id.et_os_key)
+        val userEt = findViewById<EditText>(R.id.et_os_user)
+        val passEt = findViewById<EditText>(R.id.et_os_pass)
+        val langEt = findViewById<EditText>(R.id.et_os_lang)
+        keyEt.setText(Prefs.osKey(this))
+        userEt.setText(Prefs.osUser(this))
+        passEt.setText(Prefs.osPass(this))
+        langEt.setText(Prefs.osLang(this))
+        findViewById<TextView>(R.id.btn_os_save).setOnClickListener {
+            Prefs.saveOpenSubtitles(
+                this,
+                keyEt.text.toString().trim(),
+                userEt.text.toString().trim(),
+                passEt.text.toString().trim(),
+                langEt.text.toString().trim()
+            )
+            Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
+        }
 
         refresh()
     }

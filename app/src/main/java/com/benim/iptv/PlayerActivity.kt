@@ -2,6 +2,7 @@ package com.benim.iptv
 
 import android.graphics.Color
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -12,9 +13,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -23,6 +27,7 @@ import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import coil.load
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * Türden bağımsız oynatıcı (canlı kanal / film / dizi bölümü).
@@ -44,6 +49,8 @@ class PlayerActivity : AppCompatActivity() {
     private var items: List<PlayItem> = emptyList()
     private var index: Int = 0
     private var retryCount = 0
+    private var extSubFile: File? = null
+    private var extSubIndex: Int = -1
 
     private val handler = Handler(Looper.getMainLooper())
     private val hidePanel = Runnable { findViewById<View>(R.id.info_panel).visibility = View.GONE }
@@ -64,6 +71,8 @@ class PlayerActivity : AppCompatActivity() {
             finish()
             return
         }
+
+        findViewById<View>(R.id.btn_sub).setOnClickListener { downloadSubtitleForCurrent() }
 
         bindUi(items[index])
         showPanel()
@@ -127,11 +136,83 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun playCurrent() {
-        val item = current() ?: return
         val exo = player ?: return
-        exo.setMediaItem(MediaItem.fromUri(item.url))
+        exo.setMediaItem(buildMediaItem())
         exo.playWhenReady = true
         exo.prepare()
+    }
+
+    /** O anki öğe için, varsa indirilen harici altyazıyı da iliştirerek MediaItem üretir. */
+    private fun buildMediaItem(): MediaItem {
+        val item = items[index]
+        val builder = MediaItem.Builder().setUri(item.url)
+        val sub = extSubFile
+        if (sub != null && extSubIndex == index) {
+            val cfg = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(sub))
+                .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+                .setLanguage(Prefs.osLang(this))
+                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                .build()
+            builder.setSubtitleConfigurations(listOf(cfg))
+        }
+        return builder.build()
+    }
+
+    /** O anki içerik için OpenSubtitles'tan altyazı arayıp indirir ve yükler. */
+    private fun downloadSubtitleForCurrent() {
+        val info = findViewById<TextView>(R.id.tv_info)
+        val key = Prefs.osKey(this)
+        val user = Prefs.osUser(this)
+        val pass = Prefs.osPass(this)
+        val lang = Prefs.osLang(this)
+        if (key.isEmpty() || user.isEmpty() || pass.isEmpty()) {
+            info.visibility = View.VISIBLE
+            info.text = getString(R.string.sub_need_key)
+            handler.postDelayed({ info.visibility = View.GONE }, 3000)
+            return
+        }
+        val item = current() ?: return
+        val query = cleanQuery(item.name)
+        val targetIndex = index
+        info.visibility = View.VISIBLE
+        info.text = getString(R.string.sub_searching)
+        lifecycleScope.launch {
+            val token = OpenSubtitles.login(key, user, pass)
+            if (token == null) {
+                info.text = getString(R.string.sub_login_fail); return@launch
+            }
+            val found = OpenSubtitles.search(key, query, lang)
+            val link = found?.let { OpenSubtitles.downloadLink(key, token, it.fileId) }
+            if (link == null) {
+                info.text = getString(R.string.sub_none)
+                handler.postDelayed({ info.visibility = View.GONE }, 2500)
+                return@launch
+            }
+            val dest = File(cacheDir, "sub_${System.currentTimeMillis()}.srt")
+            val ok = OpenSubtitles.fetchToFile(link, dest)
+            if (!ok || index != targetIndex) {
+                if (!ok) {
+                    info.text = getString(R.string.sub_none)
+                    handler.postDelayed({ info.visibility = View.GONE }, 2500)
+                }
+                return@launch
+            }
+            extSubFile = dest
+            extSubIndex = targetIndex
+            val pos = player?.currentPosition ?: 0L
+            player?.setMediaItem(buildMediaItem())
+            player?.prepare()
+            if (pos > 0) player?.seekTo(pos)
+            player?.play()
+            info.text = getString(R.string.sub_loaded)
+            handler.postDelayed({ info.visibility = View.GONE }, 2000)
+        }
+    }
+
+    /** Dizi için "Ad — S1 B2 · Başlık" biçimindeki addan dizi adını ayıklar. */
+    private fun cleanQuery(name: String): String {
+        val dash = name.indexOf(" — ")
+        return if (dash > 0) name.substring(0, dash) else name
     }
 
     private fun onDigit(d: Int) {
@@ -182,6 +263,9 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 KeyEvent.KEYCODE_VOLUME_UP -> { adjustVolume(AudioManager.ADJUST_RAISE); return true }
                 KeyEvent.KEYCODE_VOLUME_DOWN -> { adjustVolume(AudioManager.ADJUST_LOWER); return true }
+                KeyEvent.KEYCODE_CAPTIONS, KeyEvent.KEYCODE_MENU -> {
+                    downloadSubtitleForCurrent(); return true
+                }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_INFO -> showPanel()
             }
         }
@@ -217,10 +301,12 @@ class PlayerActivity : AppCompatActivity() {
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15000)
             .setReadTimeoutMs(20000)
+        // Hem http akışı hem de yerel (file://) altyazı dosyasını okuyabilmek için
+        val dataSourceFactory = DefaultDataSource.Factory(this, httpFactory)
 
         val exo = ExoPlayer.Builder(this)
             .setLoadControl(loadControl)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(httpFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .build()
 
         val view = findViewById<PlayerView>(R.id.player_view)
@@ -230,7 +316,7 @@ class PlayerActivity : AppCompatActivity() {
         applySubtitleStyle(view)
         playerView = view
 
-        exo.setMediaItem(MediaItem.fromUri(item.url))
+        exo.setMediaItem(buildMediaItem())
         exo.playWhenReady = true
         exo.prepare()
 

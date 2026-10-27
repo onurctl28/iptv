@@ -14,6 +14,10 @@ object Prefs {
     private const val K_SUB_COLOR = "sub_color"
     private const val K_SUB_BG = "sub_bg"
     private const val K_SUB_EDGE = "sub_edge"
+    private const val K_OS_KEY = "os_key"
+    private const val K_OS_USER = "os_user"
+    private const val K_OS_PASS = "os_pass"
+    private const val K_OS_LANG = "os_lang"
 
     private fun sp(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -52,6 +56,20 @@ object Prefs {
     fun setSubColor(ctx: Context, v: Int) = sp(ctx).edit().putInt(K_SUB_COLOR, v).apply()
     fun setSubBg(ctx: Context, v: Boolean) = sp(ctx).edit().putBoolean(K_SUB_BG, v).apply()
     fun setSubEdge(ctx: Context, v: Boolean) = sp(ctx).edit().putBoolean(K_SUB_EDGE, v).apply()
+
+    // OpenSubtitles (altyazı indirme) ayarları
+    fun osKey(ctx: Context): String = sp(ctx).getString(K_OS_KEY, "") ?: ""
+    fun osUser(ctx: Context): String = sp(ctx).getString(K_OS_USER, "") ?: ""
+    fun osPass(ctx: Context): String = sp(ctx).getString(K_OS_PASS, "") ?: ""
+    fun osLang(ctx: Context): String = sp(ctx).getString(K_OS_LANG, "tr") ?: "tr"
+    fun saveOpenSubtitles(ctx: Context, key: String, user: String, pass: String, lang: String) {
+        sp(ctx).edit()
+            .putString(K_OS_KEY, key)
+            .putString(K_OS_USER, user)
+            .putString(K_OS_PASS, pass)
+            .putString(K_OS_LANG, lang.ifEmpty { "tr" })
+            .apply()
+    }
 
     fun favorites(ctx: Context): MutableSet<String> =
         HashSet(sp(ctx).getStringSet(K_FAV, emptySet()) ?: emptySet())
