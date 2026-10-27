@@ -15,6 +15,9 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var emptyView: TextView
 
     private var allChannels: List<Channel> = emptyList()
+    private val catNameById = HashMap<String, String>()
     private var currentCategoryId: String = FAV_ID
     private var query: String = ""
 
@@ -90,6 +94,9 @@ class MainActivity : AppCompatActivity() {
             val cats = client.categories()
             allChannels = client.channels()
 
+            catNameById.clear()
+            for (c in cats) catNameById[c.id] = c.name
+
             val list = ArrayList<Category>()
             list.add(Category(FAV_ID, getString(R.string.favorites)))
             list.add(Category(ALL_ID, getString(R.string.all_channels)))
@@ -103,7 +110,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Oynatıcıdan dönünce favori durumları güncel kalsın
         if (allChannels.isNotEmpty()) channelAdapter.notifyDataSetChanged()
     }
 
@@ -122,9 +128,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openPlayer(ch: Channel) {
+        val info = ArrayList<String>()
+        info.add("Kanal: ${ch.name}")
+        if (ch.number.isNotEmpty()) info.add("Sıra No: ${ch.number}")
+        val catName = catNameById[ch.categoryId]
+        if (!catName.isNullOrEmpty()) info.add("Kategori: $catName")
+        info.add("Yayın No: ${ch.streamId}")
+        if (ch.streamType.isNotEmpty()) info.add("Tür: ${ch.streamType}")
+        info.add("Arşiv: " + if (ch.archive) "Var" else "Yok")
+        if (ch.epgId.isNotEmpty()) info.add("EPG Kimliği: ${ch.epgId}")
+        formatAdded(ch.added)?.let { info.add("Eklenme: $it") }
+
         val intent = Intent(this, PlayerActivity::class.java)
         intent.putExtra(PlayerActivity.EXTRA_URL, client.liveUrl(ch.streamId))
         intent.putExtra(PlayerActivity.EXTRA_NAME, ch.name)
+        intent.putExtra(PlayerActivity.EXTRA_LOGO, ch.icon)
+        intent.putExtra(PlayerActivity.EXTRA_STREAM_ID, ch.streamId)
+        intent.putStringArrayListExtra(PlayerActivity.EXTRA_INFO, info)
         startActivity(intent)
+    }
+
+    private fun formatAdded(added: String): String? {
+        if (added.isEmpty()) return null
+        return try {
+            val millis = added.toLong() * 1000
+            SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(millis))
+        } catch (e: Exception) {
+            null
+        }
     }
 }
