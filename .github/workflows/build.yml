@@ -29,7 +29,20 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+
+      - name: Hata logunu repoya yaz (yalnızca başarısızlıkta)
+        if: failure()
+        run: |
+          mkdir -p _ci
+          grep -E "e: |error:|> Task|FAILURE|Caused by|Compilation" /tmp/build.log | tail -n 120 > _ci/last_build_error.txt || true
+          tail -n 60 /tmp/build.log >> _ci/last_build_error.txt || true
+          git config user.email "ci@local"
+          git config user.name "ci"
+          git add _ci/last_build_error.txt
+          git commit -m "ci: derleme hatasi logu [skip ci]" || true
+          git push origin HEAD:main || true
 
       - name: APK'yı yeniden adlandır
         run: |
