@@ -1,0 +1,53 @@
+name: APK Derle
+
+# Her kod gönderiminde ve elle tetiklendiğinde APK üretir.
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Java 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      - name: gradlew çalıştırılabilir yap
+        run: chmod +x ./gradlew
+
+      - name: APK derle (debug)
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: APK'yı yeniden adlandır
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/IPTV-Oynatici.apk
+
+      - name: APK'yı yükle (Actions > Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: IPTV-Oynatici-APK
+          path: dist/IPTV-Oynatici.apk
+          if-no-files-found: error
+
+      - name: Sürüm olarak yayınla (kolay indirme linki)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "En son APK"
+          files: dist/IPTV-Oynatici.apk
+          prerelease: true
+          body: "Otomatik derlenen en son APK. Aşağıdaki IPTV-Oynatici.apk dosyasını indirip TV box / Android TV cihazınıza kurun."
