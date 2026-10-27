@@ -9,66 +9,109 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
+data class AuthResult(val ok: Boolean, val message: String)
+
 /**
  * Xtream Codes uyumlu IPTV sunucuları için istemci.
- * player_api.php üzerinden kategori, kanal ve yayın rehberi (EPG) bilgisini çeker,
- * ve canlı yayın (live) akış adreslerini üretir.
  */
 class XtreamClient(host: String, private val user: String, private val pass: String) {
 
-    val base: String = normalize(host)
+    companion object {
+        // Birçok IPTV sunucusu tanımadığı uygulamayı engeller; yaygın kabul gören bir kimlik kullanıyoruz.
+        const val UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
 
-    private fun normalize(h: String): String {
-        var s = h.trim()
-        if (!s.startsWith("http://", true) && !s.startsWith("https://", true)) {
-            s = "http://$s"
+    private val rawHost = host
+    var base: String = candidates().first()
+        private set
+
+    private data class Resp(val code: Int, val body: String)
+
+    /** Kullanıcının girdiği adresi temizler; şema yoksa http ve https adaylarını üretir. */
+    private fun candidates(): List<String> {
+        var s = rawHost.trim()
+        while (s.endsWith("/")) s = s.dropLast(1)
+        // Yanlışlıkla eklenen yolları ayıkla
+        for (suffix in listOf("/player_api.php", "/panel_api.php", "/get.php", "/c")) {
+            if (s.endsWith(suffix, true)) s = s.dropLast(suffix.length)
         }
         while (s.endsWith("/")) s = s.dropLast(1)
-        return s
+        val hasScheme = s.startsWith("http://", true) || s.startsWith("https://", true)
+        return if (hasScheme) listOf(s) else listOf("http://$s", "https://$s")
     }
 
     private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8")
 
-    private fun apiUrl(action: String?): String {
-        val b = "$base/player_api.php?username=${enc(user)}&password=${enc(pass)}"
-        return if (action == null) b else "$b&action=$action"
+    private fun apiUrl(b: String, action: String?): String {
+        val u = "$b/player_api.php?username=${enc(user)}&password=${enc(pass)}"
+        return if (action == null) u else "$u&action=$action"
     }
 
     /** Canlı yayın akış adresi. Çoğu sunucuda .ts en uyumlu seçenektir. */
     fun liveUrl(streamId: String, ext: String = "ts"): String =
         "$base/live/${enc(user)}/${enc(pass)}/$streamId.$ext"
 
-    private fun fetch(urlStr: String): String {
+    private fun fetch(urlStr: String): Resp {
         val conn = URL(urlStr).openConnection() as HttpURLConnection
         conn.connectTimeout = 15000
         conn.readTimeout = 20000
         conn.requestMethod = "GET"
-        conn.setRequestProperty("User-Agent", "IPTVOynatici/1.0")
+        conn.setRequestProperty("User-Agent", UA)
+        conn.setRequestProperty("Accept", "*/*")
         conn.instanceFollowRedirects = true
         try {
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            return stream?.bufferedReader()?.use { it.readText() } ?: ""
+            val body = stream?.bufferedReader()?.use { it.readText() } ?: ""
+            return Resp(code, body)
         } finally {
             conn.disconnect()
         }
     }
 
-    /** Giriş bilgilerini doğrular. */
-    suspend fun authenticate(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val obj = JSONObject(fetch(apiUrl(null)))
-            val info = obj.optJSONObject("user_info")
-            info != null && (info.optString("auth") == "1" || info.optInt("auth") == 1)
-        } catch (e: Exception) {
-            false
+    /** Giriş bilgilerini doğrular ve neyin yanlış gittiğini anlatan bir sonuç döner. */
+    suspend fun login(): AuthResult = withContext(Dispatchers.IO) {
+        var lastMsg = "Sunucuya ulaşılamadı."
+        for (b in candidates()) {
+            try {
+                val resp = fetch(apiUrl(b, null))
+                if (resp.body.isBlank()) {
+                    lastMsg = "Sunucu boş yanıt verdi (HTTP ${resp.code}). Adres/port engellenmiş olabilir."
+                    continue
+                }
+                val obj = try {
+                    JSONObject(resp.body)
+                } catch (e: Exception) {
+                    lastMsg = "Sunucudan beklenmeyen yanıt geldi (HTTP ${resp.code}). Adres/port'u kontrol edin."
+                    continue
+                }
+                val info = obj.optJSONObject("user_info")
+                if (info == null) {
+                    lastMsg = "Sunucu yanıtında hesap bilgisi yok. Adres/port'u kontrol edin."
+                    continue
+                }
+                val auth = if (info.has("auth")) info.optString("auth") else ""
+                val status = info.optString("status")
+                if (auth == "1" || info.optInt("auth", 0) == 1) {
+                    base = b
+                    return@withContext AuthResult(true, "")
+                }
+                return@withContext AuthResult(
+                    false,
+                    "Sunucu girişi reddetti" + if (status.isNotEmpty()) " (durum: $status)." else "."
+                )
+            } catch (e: Exception) {
+                lastMsg = "Sunucuya ulaşılamadı: ${e.message ?: "bağlantı hatası"}"
+            }
         }
+        AuthResult(false, lastMsg)
     }
 
     suspend fun categories(): List<Category> = withContext(Dispatchers.IO) {
         val out = ArrayList<Category>()
         try {
-            val arr = JSONArray(fetch(apiUrl("get_live_categories")))
+            val arr = JSONArray(fetch(apiUrl(base, "get_live_categories")).body)
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 val id = o.optString("category_id")
@@ -76,7 +119,6 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
                 if (id.isNotEmpty()) out.add(Category(id, name))
             }
         } catch (e: Exception) {
-            // boş liste döner
         }
         out
     }
@@ -84,7 +126,7 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
     suspend fun channels(): List<Channel> = withContext(Dispatchers.IO) {
         val out = ArrayList<Channel>()
         try {
-            val arr = JSONArray(fetch(apiUrl("get_live_streams")))
+            val arr = JSONArray(fetch(apiUrl(base, "get_live_streams")).body)
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 val id = o.optString("stream_id")
@@ -104,7 +146,6 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
                 )
             }
         } catch (e: Exception) {
-            // boş liste döner
         }
         out
     }
@@ -114,8 +155,8 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
         withContext(Dispatchers.IO) {
             val out = ArrayList<EpgItem>()
             try {
-                val txt = fetch(apiUrl("get_short_epg") + "&stream_id=$streamId&limit=$limit")
-                val obj = JSONObject(txt)
+                val url = apiUrl(base, "get_short_epg") + "&stream_id=$streamId&limit=$limit"
+                val obj = JSONObject(fetch(url).body)
                 val arr = obj.optJSONArray("epg_listings") ?: return@withContext out
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
@@ -124,24 +165,20 @@ class XtreamClient(host: String, private val user: String, private val pass: Str
                     out.add(EpgItem(title, hhmm(o.optString("start")), hhmm(o.optString("end"))))
                 }
             } catch (e: Exception) {
-                // boş liste döner
             }
             out
         }
 
-    /** Çoğu sunucu başlıkları base64 ile gönderir; değilse ham metni kullanır. */
     private fun decodeMaybeB64(s: String): String {
         if (s.isEmpty()) return ""
         return try {
-            val bytes = Base64.decode(s, Base64.DEFAULT)
-            val decoded = String(bytes, Charsets.UTF_8)
+            val decoded = String(Base64.decode(s, Base64.DEFAULT), Charsets.UTF_8)
             if (decoded.isNotBlank()) decoded else s
         } catch (e: Exception) {
             s
         }
     }
 
-    /** "2024-01-02 20:30:00" -> "20:30" */
     private fun hhmm(s: String): String =
         if (s.length >= 16) s.substring(11, 16) else s
 }

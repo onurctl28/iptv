@@ -14,8 +14,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import coil.load
 import kotlinx.coroutines.launch
@@ -213,8 +215,16 @@ class PlayerActivity : AppCompatActivity() {
             .setBufferDurationsMs(15000, 50000, 2500, 5000)
             .build()
 
+        // Yayın isteklerini de uygulama kimliğiyle (UA) gönder; yönlendirmelere izin ver.
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent(XtreamClient.UA)
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15000)
+            .setReadTimeoutMs(20000)
+
         val exo = ExoPlayer.Builder(this)
             .setLoadControl(loadControl)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(httpFactory))
             .build()
 
         val view = findViewById<PlayerView>(R.id.player_view)

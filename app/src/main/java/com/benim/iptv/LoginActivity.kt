@@ -48,14 +48,14 @@ class LoginActivity : AppCompatActivity() {
 
             lifecycleScope.launch {
                 val client = XtreamClient(host, user, pass)
-                val ok = client.authenticate()
+                val result = client.login()
                 progress.visibility = View.GONE
                 btn.isEnabled = true
-                if (ok) {
+                if (result.ok) {
                     Prefs.saveLogin(this@LoginActivity, client.base, user, pass)
                     goToMain()
                 } else {
-                    error.text = getString(R.string.login_failed)
+                    error.text = result.message.ifEmpty { getString(R.string.login_failed) }
                     error.visibility = View.VISIBLE
                 }
             }
