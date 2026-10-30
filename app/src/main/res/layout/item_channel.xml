@@ -6,6 +6,7 @@
     android:background="@drawable/bg_item"
     android:clickable="true"
     android:focusable="true"
+    android:longClickable="true"
     android:padding="10dp">
 
     <LinearLayout
@@ -43,7 +44,7 @@
         android:layout_gravity="top|end"
         android:clickable="true"
         android:contentDescription="@string/favorite"
-        android:focusable="true"
+        android:focusable="false"
         android:padding="5dp"
         android:src="@drawable/ic_star_off" />
 

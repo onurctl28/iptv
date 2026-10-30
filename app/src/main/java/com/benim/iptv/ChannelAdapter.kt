@@ -11,7 +11,8 @@ import coil.load
 class ChannelAdapter(
     private val onClick: (Channel) -> Unit,
     private val onFav: (Channel) -> Unit,
-    private val isFav: (String) -> Boolean
+    private val isFav: (String) -> Boolean,
+    private val onLongPress: (Channel) -> Unit = {}
 ) : RecyclerView.Adapter<ChannelAdapter.VH>() {
 
     private val items = ArrayList<Channel>()
@@ -53,6 +54,8 @@ class ChannelAdapter(
         )
 
         holder.itemView.setOnClickListener { onClick(ch) }
+        // Kumandada OK'a basılı tutunca favori menüsü
+        holder.itemView.setOnLongClickListener { onLongPress(ch); true }
         holder.fav.setOnClickListener {
             onFav(ch)
             holder.fav.setImageResource(

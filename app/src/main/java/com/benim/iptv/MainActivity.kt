@@ -9,6 +9,8 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -68,7 +70,8 @@ class MainActivity : AppCompatActivity() {
                 Prefs.toggleFav(this, ch.streamId)
                 if (currentCategoryId == FAV_ID) applyFilter()
             },
-            isFav = { id -> Prefs.isFav(this, id) }
+            isFav = { id -> Prefs.isFav(this, id) },
+            onLongPress = { ch -> showFavDialog(ch) }
         )
         chRv.setHasFixedSize(true)
         chRv.layoutManager = GridLayoutManager(this, resources.getInteger(R.integer.channel_columns))
@@ -148,6 +151,28 @@ class MainActivity : AppCompatActivity() {
         channelAdapter.submit(list)
         categoryAdapter.setSelected(currentCategoryId)
         emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    /** OK'a basılı tutunca açılan favori menüsü. */
+    private fun showFavDialog(ch: Channel) {
+        val isFav = Prefs.isFav(this, ch.streamId)
+        val action = getString(if (isFav) R.string.fav_remove else R.string.fav_add)
+        AlertDialog.Builder(this)
+            .setTitle(ch.name)
+            .setItems(arrayOf(action, getString(R.string.watch))) { _, which ->
+                if (which == 0) {
+                    val nowFav = Prefs.toggleFav(this, ch.streamId)
+                    Toast.makeText(
+                        this,
+                        if (nowFav) R.string.fav_added else R.string.fav_removed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    if (currentCategoryId == FAV_ID) applyFilter() else channelAdapter.notifyDataSetChanged()
+                } else {
+                    openPlayer(ch)
+                }
+            }
+            .show()
     }
 
     private fun openPlayer(ch: Channel) {

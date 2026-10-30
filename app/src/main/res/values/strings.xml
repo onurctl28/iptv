@@ -58,4 +58,9 @@
     <string name="sub_need_key">Önce Ayarlar\'dan OpenSubtitles anahtarı ve hesabı girin</string>
     <string name="sub_login_fail">OpenSubtitles girişi başarısız (anahtar/kullanıcı/şifre?)</string>
     <string name="sub_download">Altyazı indir</string>
+    <string name="fav_add">Favoriye ekle</string>
+    <string name="fav_remove">Favoriden çıkar</string>
+    <string name="fav_added">Favorilere eklendi</string>
+    <string name="fav_removed">Favorilerden çıkarıldı</string>
+    <string name="watch">İzle</string>
 </resources>
