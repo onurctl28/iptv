@@ -56,4 +56,9 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("io.coil-kt:coil:2.7.0")
+
+    // QR kod: TV'de üretme (zxing core) + telefonda okutma (journeyapps).
+    // core 3.3.0, minSdk 21 cihazlarla uyum için bilinçli olarak sabitlendi.
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0") { isTransitive = false }
+    implementation("com.google.zxing:core:3.3.0")
 }

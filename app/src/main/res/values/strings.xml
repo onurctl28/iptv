@@ -63,4 +63,23 @@
     <string name="fav_added">Favorilere eklendi</string>
     <string name="fav_removed">Favorilerden çıkarıldı</string>
     <string name="watch">İzle</string>
+    <string name="sync_section">Telefon ↔ TV eşitleme</string>
+    <string name="sync_section_help">TV\'de "Telefondan al" ile QR kodu gösterin, telefondaki bu uygulamada "TV\'ye gönder" ile okutun. İki cihaz aynı ağda (aynı Wi-Fi/modem) olmalı.</string>
+    <string name="sync_open_receive">Telefondan al (QR göster)</string>
+    <string name="sync_open_send">TV\'ye gönder (QR okut)</string>
+    <string name="sync_login_with_phone">Telefonla giriş (QR)</string>
+    <string name="sync_receive_title">Telefondan ayarları al</string>
+    <string name="sync_receive_help">Telefondaki IPTV Oynatıcı\'da Ayarlar → "TV\'ye gönder" seçip bu kodu okutun. Giriş bilgileri, favoriler ve tüm ayarlar bu cihaza aktarılır.</string>
+    <string name="sync_waiting">Telefon bekleniyor…</string>
+    <string name="sync_done">Aktarıldı! Açılıyor…</string>
+    <string name="sync_no_network">Ağ bağlantısı bulunamadı. Cihazın Wi-Fi veya kabloya bağlı olduğundan emin olun.</string>
+    <string name="sync_send_title">TV\'ye gönder</string>
+    <string name="sync_scan_prompt">TV ekranındaki QR kodu okutun</string>
+    <string name="sync_scan_again">QR kodu okut</string>
+    <string name="sync_scan_cancelled">Okutma iptal edildi.</string>
+    <string name="sync_need_login">Önce bu telefonda IPTV hesabınızla giriş yapın, sonra gönderin.</string>
+    <string name="sync_bad_qr">Bu QR kod IPTV Oynatıcı\'ya ait değil.</string>
+    <string name="sync_sending">Gönderiliyor…</string>
+    <string name="sync_sent">Ayarlar TV\'ye aktarıldı ✓</string>
+    <string name="sync_send_fail">TV\'ye ulaşılamadı. İki cihazın aynı ağda olduğundan ve TV\'de QR ekranının açık olduğundan emin olun.</string>
 </resources>

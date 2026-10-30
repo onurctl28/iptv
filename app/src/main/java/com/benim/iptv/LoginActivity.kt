@@ -31,6 +31,10 @@ class LoginActivity : AppCompatActivity() {
         val progress = findViewById<ProgressBar>(R.id.progress)
         val error = findViewById<TextView>(R.id.tv_error)
 
+        findViewById<View>(R.id.btn_phone_login).setOnClickListener {
+            startActivity(Intent(this, SyncReceiveActivity::class.java))
+        }
+
         btn.setOnClickListener {
             val host = hostEt.text.toString().trim()
             val user = userEt.text.toString().trim()

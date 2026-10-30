@@ -33,6 +33,14 @@ class SettingsActivity : AppCompatActivity() {
         bgChips.forEachIndexed { i, v -> v.setOnClickListener { Prefs.setSubBg(this, i == 0); refresh() } }
         edgeChips.forEachIndexed { i, v -> v.setOnClickListener { Prefs.setSubEdge(this, i == 0); refresh() } }
 
+        // Telefon <-> TV eşitleme
+        findViewById<View>(R.id.btn_sync_receive).setOnClickListener {
+            startActivity(android.content.Intent(this, SyncReceiveActivity::class.java))
+        }
+        findViewById<View>(R.id.btn_sync_send).setOnClickListener {
+            startActivity(android.content.Intent(this, SyncSendActivity::class.java))
+        }
+
         // OpenSubtitles alanları
         val keyEt = findViewById<EditText>(R.id.et_os_key)
         val userEt = findViewById<EditText>(R.id.et_os_user)

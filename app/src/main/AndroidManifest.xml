@@ -52,6 +52,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".SyncReceiveActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SyncSendActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".PlayerActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
             android:exported="false"

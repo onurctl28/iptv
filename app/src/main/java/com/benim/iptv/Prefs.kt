@@ -1,6 +1,8 @@
 package com.benim.iptv
 
 import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Giriş bilgilerini ve favori kanalları cihazda saklar. */
 object Prefs {
@@ -75,6 +77,34 @@ object Prefs {
         HashSet(sp(ctx).getStringSet(K_FAV, emptySet()) ?: emptySet())
 
     fun isFav(ctx: Context, id: String): Boolean = favorites(ctx).contains(id)
+
+    /** Telefon -> TV aktarımı için tüm ayarları JSON olarak verir. */
+    fun exportJson(ctx: Context): String = JSONObject().apply {
+        put("host", host(ctx)); put("user", user(ctx)); put("pass", pass(ctx))
+        put("favorites", JSONArray(favorites(ctx).toList()))
+        put("sub_size", subSize(ctx)); put("sub_color", subColor(ctx))
+        put("sub_bg", subBg(ctx)); put("sub_edge", subEdge(ctx))
+        put("os_key", osKey(ctx)); put("os_user", osUser(ctx))
+        put("os_pass", osPass(ctx)); put("os_lang", osLang(ctx))
+    }.toString()
+
+    /** Telefondan gelen ayarları uygular. Favoriler TV'dekilerle birleştirilir. */
+    fun importJson(ctx: Context, json: String): Boolean {
+        val o = JSONObject(json)
+        val host = o.optString("host")
+        val user = o.optString("user")
+        if (host.isEmpty() || user.isEmpty()) return false
+        val favs = favorites(ctx)
+        o.optJSONArray("favorites")?.let { arr -> for (i in 0 until arr.length()) favs.add(arr.getString(i)) }
+        return sp(ctx).edit()
+            .putString(K_HOST, host).putString(K_USER, user).putString(K_PASS, o.optString("pass"))
+            .putStringSet(K_FAV, favs)
+            .putInt(K_SUB_SIZE, o.optInt("sub_size", 1)).putInt(K_SUB_COLOR, o.optInt("sub_color", 0))
+            .putBoolean(K_SUB_BG, o.optBoolean("sub_bg", true)).putBoolean(K_SUB_EDGE, o.optBoolean("sub_edge", true))
+            .putString(K_OS_KEY, o.optString("os_key")).putString(K_OS_USER, o.optString("os_user"))
+            .putString(K_OS_PASS, o.optString("os_pass")).putString(K_OS_LANG, o.optString("os_lang", "tr"))
+            .commit()
+    }
 
     fun toggleFav(ctx: Context, id: String): Boolean {
         val set = favorites(ctx)
